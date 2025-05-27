@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,8 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
     const lines = text.split('\n');
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     
+    console.log('CSV Headers:', headers);
+    
     return lines.slice(1)
       .filter(line => line.trim())
       .map(line => {
@@ -41,20 +42,59 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       });
   };
 
+  const cleanItemGroupName = (name: string): string => {
+    if (!name || typeof name !== 'string') return '';
+    return name.trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+
   const processData = useCallback((rawData: RawDataRow[]): ProcessedData => {
+    console.log('Raw data length:', rawData.length);
+    
+    // Clean and validate data
+    const validData = rawData.filter(row => {
+      const hasValidDate = row['Order Date'] && !isNaN(Date.parse(row['Order Date']));
+      const hasValidItemGroup = row['Item Groups'] && row['Item Groups'].trim() !== '';
+      const hasValidQty = !isNaN(row['Qty']) && row['Qty'] >= 0;
+      
+      return hasValidDate && hasValidItemGroup && hasValidQty;
+    });
+    
+    console.log('Valid data length after filtering:', validData.length);
+    
+    // Get unique item groups (case-insensitive, trimmed)
+    const uniqueItemGroups = new Set();
+    validData.forEach(row => {
+      const cleanName = cleanItemGroupName(row['Item Groups']);
+      if (cleanName) {
+        uniqueItemGroups.add(cleanName);
+      }
+    });
+    
+    console.log('Unique item groups found:', uniqueItemGroups.size);
+    console.log('Item groups:', Array.from(uniqueItemGroups));
+    
+    // Create a mapping from clean names back to original names (use the first occurrence)
+    const nameMapping = new Map();
+    validData.forEach(row => {
+      const cleanName = cleanItemGroupName(row['Item Groups']);
+      if (cleanName && !nameMapping.has(cleanName)) {
+        nameMapping.set(cleanName, row['Item Groups'].trim());
+      }
+    });
+    
     const itemGroupsMap = new Map();
     
-    rawData.forEach(row => {
-      if (!row['Item Groups'] || !row['Order Date']) return;
+    validData.forEach(row => {
+      const cleanName = cleanItemGroupName(row['Item Groups']);
+      if (!cleanName) return;
       
-      const itemGroup = row['Item Groups'];
       const date = new Date(row['Order Date']).toISOString().split('T')[0];
       
-      if (!itemGroupsMap.has(itemGroup)) {
-        itemGroupsMap.set(itemGroup, []);
+      if (!itemGroupsMap.has(cleanName)) {
+        itemGroupsMap.set(cleanName, []);
       }
       
-      itemGroupsMap.get(itemGroup).push({
+      itemGroupsMap.get(cleanName).push({
         date,
         value: row['Qty'],
         revenue: row['Ext. Price'],
@@ -62,7 +102,11 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       });
     });
 
-    const itemGroups = Array.from(itemGroupsMap.entries()).map(([name, points]) => {
+    console.log('Item groups map size:', itemGroupsMap.size);
+
+    const itemGroups = Array.from(itemGroupsMap.entries()).map(([cleanName, points]) => {
+      const originalName = nameMapping.get(cleanName) || cleanName;
+      
       // Aggregate by date
       const dateMap = new Map();
       points.forEach((point: any) => {
@@ -83,8 +127,10 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       const totalQuantity = timeSeries.reduce((sum, point) => sum + point.value, 0);
       const totalRevenue = timeSeries.reduce((sum, point) => sum + (point.revenue || 0), 0);
 
+      console.log(`Item group "${originalName}": ${timeSeries.length} data points, total qty: ${totalQuantity}`);
+
       return {
-        name,
+        name: originalName,
         timeSeries,
         stats: {
           totalQuantity,
@@ -99,14 +145,17 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
     const allDates = itemGroups.flatMap(ig => ig.timeSeries.map(p => p.date));
     const sortedDates = allDates.sort();
 
-    return {
+    const result = {
       itemGroups,
       dateRange: {
-        start: sortedDates[0],
-        end: sortedDates[sortedDates.length - 1]
+        start: sortedDates[0] || '',
+        end: sortedDates[sortedDates.length - 1] || ''
       },
-      totalRecords: rawData.length
+      totalRecords: validData.length
     };
+
+    console.log('Final processed data:', result);
+    return result;
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,9 +181,14 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       }
 
       const processedData = processData(rawData);
+      
+      if (processedData.itemGroups.length === 0) {
+        throw new Error('No valid item groups found after processing');
+      }
+      
       onDataProcessed(processedData);
       setProcessed(true);
-      toast.success('Data processed successfully!');
+      toast.success(`Data processed successfully! Found ${processedData.itemGroups.length} unique item groups.`);
     } catch (error) {
       console.error('Error processing file:', error);
       toast.error('Error processing file. Please check the format.');
