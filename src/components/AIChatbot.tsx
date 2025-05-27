@@ -61,10 +61,10 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ data, forecasts }) => {
   };
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
-    const storedApiKey = localStorage.getItem('openai_api_key') || apiKey;
+    const storedApiKey = localStorage.getItem('groq_api_key') || apiKey;
     
     if (!storedApiKey) {
-      return "Please provide your OpenAI API key to enable AI responses. I can help you analyze your SARIMA forecast data, explain trends, compare item groups, and answer questions about your demand forecasting results.";
+      return "Please provide your Groq API key to enable AI responses. I can help you analyze your SARIMA forecast data, explain trends, compare item groups, and answer questions about your demand forecasting results.";
     }
 
     const dataSummary = generateDataSummary();
@@ -76,14 +76,14 @@ ${dataSummary}
 Help the user understand their data, forecasts, and provide insights about demand patterns. Be concise and practical in your responses. Focus on actionable insights for demand planning and inventory management.`;
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${storedApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'llama-3.1-70b-versatile',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }
@@ -100,7 +100,7 @@ Help the user understand their data, forecasts, and provide insights about deman
       const result = await response.json();
       return result.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
     } catch (error) {
-      console.error('Error calling OpenAI API:', error);
+      console.error('Error calling Groq API:', error);
       return "I'm having trouble connecting to the AI service. Please check your API key and try again.";
     }
   };
@@ -146,7 +146,7 @@ Help the user understand their data, forecasts, and provide insights about deman
 
   const saveApiKey = () => {
     if (apiKey.trim()) {
-      localStorage.setItem('openai_api_key', apiKey.trim());
+      localStorage.setItem('groq_api_key', apiKey.trim());
       setShowApiKeyInput(false);
       setApiKey('');
     }
@@ -173,17 +173,17 @@ Help the user understand their data, forecasts, and provide insights about deman
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col gap-4">
-        {!localStorage.getItem('openai_api_key') && !showApiKeyInput && (
+        {!localStorage.getItem('groq_api_key') && !showApiKeyInput && (
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-700 mb-2">
-              Connect your OpenAI API key to enable AI insights
+              Connect your Groq API key to enable AI insights
             </p>
             <Button 
               onClick={() => setShowApiKeyInput(true)}
               size="sm"
               variant="outline"
             >
-              Add API Key
+              Add Groq API Key
             </Button>
           </div>
         )}
@@ -192,7 +192,7 @@ Help the user understand their data, forecasts, and provide insights about deman
           <div className="space-y-2 p-4 bg-slate-50 rounded-lg">
             <Input
               type="password"
-              placeholder="Enter your OpenAI API key"
+              placeholder="Enter your Groq API key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
