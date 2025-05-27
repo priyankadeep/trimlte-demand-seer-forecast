@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,9 +11,10 @@ import { TrendingUp, BarChart3 } from 'lucide-react';
 interface ForecastDashboardProps {
   data: ProcessedData;
   config: ModelConfig;
+  onForecastGenerated?: (itemGroup: string, forecast: ForecastResult) => void;
 }
 
-const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config }) => {
+const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config, onForecastGenerated }) => {
   const [selectedItemGroup, setSelectedItemGroup] = useState<string>(data.itemGroups[0]?.name || '');
   const [forecasts, setForecasts] = useState<Map<string, ForecastResult>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -68,6 +68,12 @@ const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config }) =
     };
 
     setForecasts(prev => new Map(prev).set(itemGroupName, result));
+    
+    // Call the callback to update parent component
+    if (onForecastGenerated) {
+      onForecastGenerated(itemGroupName, result);
+    }
+    
     setLoading(false);
   };
 
