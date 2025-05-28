@@ -97,7 +97,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       itemGroupsMap.get(cleanName).push({
         date,
         value: row['Qty'],
-        revenue: row['Ext. Price'],
+        revenue: row['Qty'] * row['Ext. Price'],
         transactions: 1
       });
     });
@@ -125,7 +125,9 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       );
 
       const totalQuantity = timeSeries.reduce((sum, point) => sum + point.value, 0);
-      const totalRevenue = timeSeries.reduce((sum, point) => sum + (point.revenue || 0), 0);
+      const totalRevenue = timeSeries.reduce((sum, point) => sum + (point.revenue ?? 0), 0);
+      const totalTransactions = timeSeries.reduce((sum, point) => sum + point.transactions, 0);
+
 
       console.log(`Item group "${originalName}": ${timeSeries.length} data points, total qty: ${totalQuantity}`);
 
@@ -135,7 +137,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
         stats: {
           totalQuantity,
           totalRevenue,
-          avgQuantity: totalQuantity / timeSeries.length,
+          avgQuantity: totalTransactions > 0 ? totalQuantity / totalTransactions : 0,
           maxQuantity: Math.max(...timeSeries.map(p => p.value)),
           minQuantity: Math.min(...timeSeries.map(p => p.value))
         }
