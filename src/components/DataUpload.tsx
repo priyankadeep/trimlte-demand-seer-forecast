@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProcessedData, RawDataRow } from '@/types/forecast';
+import Papa from 'papaparse'; // Add this import at the top
 
 interface DataUploadProps {
   onDataProcessed: (data: ProcessedData) => void;
@@ -17,29 +18,20 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
   const [processed, setProcessed] = useState(false);
 
   const parseCSV = (text: string): RawDataRow[] => {
-    const lines = text.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const { data } = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim(),
+      transform: (value) => value.trim()
+    });
     
-    console.log('CSV Headers:', headers);
-    
-    return lines.slice(1)
-      .filter(line => line.trim())
-      .map(line => {
-        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-        const row: any = {};
-        
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        
-        return {
-          'Order Date': row['Order Date'] || '',
-          'Item Groups': row['Item Groups'] || '',
-          'Qty': parseFloat(row['Qty']) || 0,
-          'Ext. Price': parseFloat(row['Ext. Price']) || 0,
-          'Tran #': row['Tran #'] || ''
-        };
-      });
+    return data.map(row => ({
+      'Order Date': row['Order Date'] || '',
+      'Item Groups': row['Item Groups'] || '',
+      'Qty': parseFloat(row['Qty']) || 0,
+      'Ext. Price': parseFloat(row['Ext. Price']) || 0,
+      'Tran #': row['Tran #'] || ''
+    }));
   };
 
   const cleanItemGroupName = (name: string): string => {
