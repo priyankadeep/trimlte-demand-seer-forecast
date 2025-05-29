@@ -7,7 +7,8 @@ import TimeSeriesChart from '@/components/TimeSeriesChart';
 import ForecastChart from '@/components/ForecastChart';
 import { ProcessedData, ModelConfig, ForecastResult } from '@/types/forecast';
 import { TrendingUp, BarChart3 } from 'lucide-react';
-
+import { forecastAPI } from '@/services/forecastAPI';
+import { toast } from 'sonner';
 interface ForecastDashboardProps {
   data: ProcessedData;
   config: ModelConfig;
@@ -27,54 +28,34 @@ const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config, onF
   const generateForecast = async (itemGroupName: string) => {
     setLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const itemGroup = data.itemGroups.find(ig => ig.name === itemGroupName);
-    if (!itemGroup) return;
-
-    // Generate mock forecast data
-    const lastPoint = itemGroup.timeSeries[itemGroup.timeSeries.length - 1];
-    const avgValue = itemGroup.stats.avgQuantity;
-    const trend = avgValue * 0.05; // 5% growth trend
-    
-    const forecast = Array.from({ length: config.forecastPeriods }, (_, i) => {
-      const baseValue = avgValue + (trend * i);
-      const noise = (Math.random() - 0.5) * avgValue * 0.2;
-      const seasonal = Math.sin((i * 2 * Math.PI) / 12) * avgValue * 0.1;
-      
-      const mean = Math.max(0, baseValue + noise + seasonal);
-      const confidence = mean * 0.2;
-      
-      const forecastDate = new Date(lastPoint.date);
-      forecastDate.setMonth(forecastDate.getMonth() + i + 1);
-      
-      return {
-        date: forecastDate.toISOString().split('T')[0],
-        mean,
-        lower: Math.max(0, mean - confidence),
-        upper: mean + confidence
-      };
-    });
-
-    const result: ForecastResult = {
-      itemGroup: itemGroupName,
-      forecast,
-      metrics: {
-        mae: Math.random() * 50 + 10,
-        rmse: Math.random() * 70 + 20,
-        aic: Math.random() * 1000 + 500
+    try {
+      const itemGroup = data.itemGroups.find(ig => ig.name === itemGroupName);
+      if (!itemGroup) {
+        toast.error('Item group not found');
+        return;
       }
-    };
-
-    setForecasts(prev => new Map(prev).set(itemGroupName, result));
-    
-    // Call the callback to update parent component
-    if (onForecastGenerated) {
-      onForecastGenerated(itemGroupName, result);
+  
+      // Call the actual forecast API
+      const result = await forecastAPI.generateForecast(
+        itemGroupName,
+        itemGroup.timeSeries,
+        config
+      );
+  
+      setForecasts(prev => new Map(prev).set(itemGroupName, result));
+      
+      // Call the callback to update parent component
+      if (onForecastGenerated) {
+        onForecastGenerated(itemGroupName, result);
+      }
+      
+      toast.success(`Forecast generated for ${itemGroupName}`);
+    } catch (error) {
+      console.error('Error generating forecast:', error);
+      toast.error('Failed to generate forecast. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const currentForecast = forecasts.get(selectedItemGroup);
@@ -160,7 +141,7 @@ const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config, onF
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600">Data Points</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">Time-Series Points (unique dates)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
@@ -247,3 +228,4 @@ const ForecastDashboard: React.FC<ForecastDashboardProps> = ({ data, config, onF
 };
 
 export default ForecastDashboard;
+
