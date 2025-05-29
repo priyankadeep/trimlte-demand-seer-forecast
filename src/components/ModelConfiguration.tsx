@@ -1,12 +1,11 @@
 
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { ModelConfig } from '@/types/forecast';
-
+import React, { useEffect } from 'react';
 interface ModelConfigurationProps {
   config: ModelConfig;
   onConfigChange: (config: ModelConfig) => void;
@@ -16,6 +15,15 @@ const ModelConfiguration: React.FC<ModelConfigurationProps> = ({ config, onConfi
   const updateConfig = (updates: Partial<ModelConfig>) => {
     onConfigChange({ ...config, ...updates });
   };
+  // Auto-update seasonal period when frequency changes
+useEffect(() => {
+  const seasonalPeriod = config.frequency === 'M' ? 12 : 52;
+  if (config.seasonalOrder[3] !== seasonalPeriod) {
+    updateConfig({
+      seasonalOrder: [...config.seasonalOrder.slice(0, 3), seasonalPeriod] as [number, number, number, number]
+    });
+  }
+}, [config.frequency]);
 
   return (
     <div className="space-y-6">
