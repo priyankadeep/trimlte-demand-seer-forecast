@@ -6,7 +6,7 @@ A comprehensive time series forecasting application that supports **SARIMA**, **
 
 - **Three Forecasting Models:**
   - **SARIMA** - Statistical time series model with seasonality (Recommended)
-  - **Prophet** - Facebook's robust forecasting model
+  - **Prophet** - Robust forecasting model
   - **LSTM** - Deep learning neural network model
 
 - **Advanced Analytics:**
@@ -17,7 +17,6 @@ A comprehensive time series forecasting application that supports **SARIMA**, **
 
 - **Data Processing:**
   - CSV data upload and processing
-  - Revenue calculation with Price × (Qty - w/Sub-Total)
   - Automatic data validation and cleaning
 
 ## Prerequisites
