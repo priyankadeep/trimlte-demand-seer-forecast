@@ -1,66 +1,58 @@
-import { ProcessedData, ModelConfig, ForecastResult } from '@/types/forecast';
 
-const API_BASE_URL = 'http://localhost:5001';
+
+import { TimeSeriesPoint, ForecastResult, ModelConfig } from '@/types/forecast';
+
+const API_BASE_URL = '/api';
+
 export const forecastAPI = {
 async generateForecast(
     itemGroup: string,
-    timeSeries: any[],
+    timeSeries: TimeSeriesPoint[],
     config: ModelConfig
 ): Promise<ForecastResult> {
-    try {
-    const response = await fetch(`${API_BASE_URL}/api/forecast`, {
-        method: 'POST',
-        headers: {
+    const requestBody = {
+    itemGroup,
+    timeSeries,
+    modelType: config.modelType,
+    frequency: config.frequency,
+    periods: config.forecastPeriods,
+    
+      // SARIMA specific
+    autoSelect: config.autoSelect,
+    order: config.order,
+    seasonalOrder: config.seasonalOrder,
+    
+      // Prophet specific
+    prophetConfig: config.prophetConfig,
+    
+      // LSTM specific
+    lstmConfig: config.lstmConfig
+    };
+
+    const response = await fetch(`${API_BASE_URL}/forecast`, {
+    method: 'POST',
+    headers: {
         'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-        itemGroup,
-        timeSeries,
-        frequency: config.frequency,
-        periods: config.forecastPeriods,
-        order: config.order,
-        seasonalOrder: config.seasonalOrder,
-        autoSelect: config.autoSelect
-        }),
+    },
+    body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const errorData = await response.json();
+    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
-    } catch (error) {
-    console.error('Error calling forecast API:', error);
-    throw error;
-    }
+    const result = await response.json();
+    return result;
 },
 
-async batchForecast(
-    data: ProcessedData,
-    config: ModelConfig
-): Promise<Map<string, ForecastResult>> {
-    try {
-    const response = await fetch(`${API_BASE_URL}/api/forecast/batch`, {
-        method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-        itemGroups: data.itemGroups,
-        config
-        }),
-    });
-
+async healthCheck(): Promise<{ status: string; message: string; models: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const results = await response.json();
-    return new Map(Object.entries(results));
-    } catch (error) {
-    console.error('Error calling batch forecast API:', error);
-    throw error;
-    }
+    return response.json();
 }
 };
