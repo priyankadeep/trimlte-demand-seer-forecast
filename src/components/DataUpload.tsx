@@ -254,7 +254,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
         </Button>
       </div>
 
-      <div className="text-sm text-slate-600 bg-slate-100 p-4 rounded-lg">
+{/*       <div className="text-sm text-slate-600 bg-slate-100 p-4 rounded-lg">
         <h4 className="font-medium mb-2">Expected CSV Format:</h4>
         <ul className="list-disc list-inside space-y-1">
           <li>Order Date (YYYY-MM-DD or MM/DD/YY format)</li>
@@ -270,7 +270,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
             <strong>Revenue Calculation:</strong> Price × (Qty - w/Sub-Total)
           </p>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
