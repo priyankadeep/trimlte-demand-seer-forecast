@@ -269,12 +269,6 @@ npm install
 
 ## Sample Data Format
 
-### Main Dataset (Sales Data)
-```csv
-Order Date,Item Groups,Qty,Price,Qty - w/Sub-Total,Ext. Price
-2023-01-01,8433 3-Panel Shaker Door,10,150.00,10,1500.00
-2023-01-02,8402 2-Panel Shaker Door,5,120.00,5,600.00
-```
 
 ## Contributing
 
@@ -283,10 +277,6 @@ Order Date,Item Groups,Qty,Price,Qty - w/Sub-Total,Ext. Price
 3. Commit your changes
 4. Push to the branch
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
 
 ## Support
 
