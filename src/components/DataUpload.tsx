@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProcessedData, RawDataRow } from '@/types/forecast';
-import Papa from 'papaparse'; // Add this import at the top
+import Papa from 'papaparse';
 
 interface DataUploadProps {
   onDataProcessed: (data: ProcessedData) => void;
@@ -29,6 +31,8 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       'Order Date': row['Order Date'] || '',
       'Item Groups': row['Item Groups'] || '',
       'Qty': parseFloat(row['Qty']) || 0,
+      'Price': parseFloat(row['Price']) || 0,  // Added Price column
+      'Qty - w/Sub-Total': parseFloat(row['Qty - w/Sub-Total']) || row['Qty'] || 0,  // Added correct quantity column
       'Ext. Price': parseFloat(row['Ext. Price']) || 0,
       'Tran #': row['Tran #'] || ''
     }));
@@ -86,10 +90,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
         itemGroupsMap.set(cleanName, []);
       }
       
+      // FIXED REVENUE CALCULATION
+      // Use Price * (Qty - w/Sub-Total) instead of Qty * Ext. Price
+      const quantity = row['Qty - w/Sub-Total'] || row['Qty'];
+      const price = row['Price'] || 0;
+      const revenue = price * quantity;
+      
       itemGroupsMap.get(cleanName).push({
         date,
         value: row['Qty'],
-        revenue: row['Qty'] * row['Ext. Price'],
+        revenue: row['Ext. Price'],
         transactions: 1
       });
     });
@@ -120,8 +130,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
       const totalRevenue = timeSeries.reduce((sum, point) => sum + (point.revenue ?? 0), 0);
       const totalTransactions = timeSeries.reduce((sum, point) => sum + point.transactions, 0);
 
-
-      console.log(`Item group "${originalName}": ${timeSeries.length} data points, total qty: ${totalQuantity}`);
+      console.log(`Item group "${originalName}": ${timeSeries.length} data points, total qty: ${totalQuantity}, total revenue: ${totalRevenue.toFixed(2)}`);
 
       return {
         name: originalName,
@@ -251,9 +260,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onDataProcessed }) => {
           <li>Order Date (YYYY-MM-DD or MM/DD/YY format)</li>
           <li>Item Groups (product categories)</li>
           <li>Qty (quantity values)</li>
-          <li>Ext. Price (extended price/revenue)</li>
+          <li>Price (unit price)</li>
+          <li>Qty - w/Sub-Total (net quantity for revenue calculation)</li>
+          <li>Ext. Price (extended price/revenue - optional)</li>
           <li>Tran # (transaction numbers)</li>
         </ul>
+        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-yellow-800 text-xs">
+            <strong>Revenue Calculation:</strong> Price × (Qty - w/Sub-Total)
+          </p>
+        </div>
       </div>
     </div>
   );
